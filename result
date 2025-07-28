@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Movie Suggestions</title>
+<style>
+  * {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  body {
+    margin: 0;
+    background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    padding: 20px;
+  }
+  .card {
+    background: #111;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 0 15px rgba(245, 197, 24, 0.3);
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+  }
+  .card h2 {
+    color: #f5c518;
+    margin-bottom: 10px;
+  }
+  .card p {
+    margin: 5px 0;
+  }
+  .platform {
+    color: #aaa;
+    font-size: 0.9em;
+    margin-top: 10px;
+  }
+  button {
+    margin: 10px 15px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #f5c518;
+    color: #000;
+    font-weight: bold;
+    transition: background 0.3s;
+  }
+  button:hover {
+    background-color: #ffd700;
+  }
+  .popup {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #00ffae;
+    animation: fadeIn 0.6s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <h2 id="greeting">🎉 Hi! Here’s your movie pick:</h2>
+    <p id="movie-name" style="font-weight: bold; font-size: 1.3rem;"></p>
+    <p id="credits"></p>
+    <p id="details"></p>
+    <p id="description"></p>
+    <p class="platform" id="platform"></p>
+    <p id="question">Have you already watched this movie?</p>
+    <div>
+      <button onclick="handleResponse(true)">Yes</button>
+      <button onclick="handleResponse(false)">No</button>
+    </div>
+    <p class="popup" id="response"></p>
+  </div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const userName = urlParams.get('name') || 'Friend';
+const genre = urlParams.get('genre') || 'Action';
+const language = urlParams.get('language') || 'English';
+
+document.getElementById("greeting").innerText = `🎉 Hi ${userName}! Since you love ${genre} Movies in ${language}, here’s a pick:`;
+
+// Dataset for 7 genres (Action, Romance, Thriller, Horror, Sci-Fi, Comedy, Drama)
+// Only Tamil and English languages, 5 movies each
+
+const allMovies = {
+  "Action": {
+    "Tamil": [
+      {name:"Vettaiyaadu Vilaiyaadu", director:"Gautham Vasudev Menon", actor:"Madhavan", year:2006, rating:8.1, desc:"A cop hunts down a serial killer in Chennai.", platform:"Hotstar"},
+      {name:"Baasha", director:"Suresh Krissna", actor:"Rajinikanth", year:1995, rating:8.0, desc:"A don hides his past to protect his loved ones.", platform:"Amazon Prime"},
+      {name:"Thuppakki", director:"A.R. Murugadoss", actor:"Vijay", year:2012, rating:8.2, desc:"An army officer fights terrorism in Mumbai.", platform:"Netflix"},
+      {name:"Mankatha", director:"Venkat Prabhu", actor:"Ajith Kumar", year:2011, rating:7.5, desc:"A heist thriller with twists and betrayal.", platform:"Zee5"},
+      {name:"Ayan", director:"K.V. Anand", actor:"Suriya", year:2009, rating:7.8, desc:"A smuggler turns good for love.", platform:"Hotstar"}
+    ],
+    "English": [
+      {name:"John Wick", director:"Chad Stahelski", actor:"Keanu Reeves", year:2014, rating:7.4, desc:"An ex-hitman seeks vengeance.", platform:"Prime Video"},
+      {name:"Gladiator", director:"Ridley Scott", actor:"Russell Crowe", year:2000, rating:8.5, desc:"A general becomes a gladiator for vengeance.", platform:"Netflix"},
+      {name:"Mission Impossible", director:"Brian De Palma", actor:"Tom Cruise", year:1996, rating:7.1, desc:"A spy fights against conspiracies.", platform:"Amazon Prime"},
+      {name:"Top Gun: Maverick", director:"Joseph Kosinski", actor:"Tom Cruise", year:2022, rating:8.4, desc:"A pilot faces his past and new challenges.", platform:"Cinema"},
+      {name:"Deadpool", director:"Tim Miller", actor:"Ryan Reynolds", year:2016, rating:8.0, desc:"A mercenary with a twisted sense of humor.", platform:"Netflix"}
+    ]
+  },
+  "Romance": {
+    "Tamil": [
+      {name:"Alaipayuthey", director:"Mani Ratnam", actor:"R. Madhavan", year:2000, rating:8.1, desc:"A love story of young couple with ups and downs.", platform:"Hotstar"},
+      {name:"Kadhalukku Mariyadhai", director:"S. Shankar", actor:" Vijay", year:1997, rating:7.9, desc:"A romantic tale of love and family opposition.", platform:"Amazon Prime"},
+      {name:"Minnale", director:"Gautham Vasudev Menon", actor:"R. Madhavan", year:2001, rating:7.5, desc:"A man tries to win back his love.", platform:"Netflix"},
+      {name:"Kadhal Konden", director:"Selvaraghavan", actor:"Dhanush", year:2003, rating:7.3, desc:"A troubled youth falls in love.", platform:"Zee5"},
+      {name:"Mouna Ragam", director:"Mani Ratnam", actor:"Revathi", year:1986, rating:8.0, desc:"A woman's journey through love and marriage.", platform:"Hotstar"}
+    ],
+    "English": [
+      {name:"The Notebook", director:"Nick Cassavetes", actor:"Ryan Gosling", year:2004, rating:7.8, desc:"A love story that spans decades.", platform:"Netflix"},
+      {name:"Titanic", director:"James Cameron", actor:"Leonardo DiCaprio", year:1997, rating:7.8, desc:"A tragic love story on the doomed ship.", platform:"Prime Video"},
+      {name:"Pride and Prejudice", director:"Joe Wright", actor:"Keira Knightley", year:2005, rating:7.8, desc:"Love and misunderstandings in 19th century England.", platform:"Amazon Prime"},
+      {name:"La La Land", director:"Damien Chazelle", actor:"Emma Stone", year:2016, rating:8.0, desc:"Two artists chase dreams and love in LA.", platform:"Netflix"},
+      {name:"A Walk to Remember", director:"Adam Shankman", actor:"Mandy Moore", year:2002, rating:7.4, desc:"A high school romance with a twist.", platform:"Disney+"}
+    ]
+  },
+  "Thriller": {
+    "Tamil": [
+      {name:"Ratsasan", director:"Ram Kumar", actor:"Vishnu Vishal", year:2018, rating:8.0, desc:"A cop chases a serial killer.", platform:"Amazon Prime"},
+      {name:"Dhuruvangal Pathinaaru", director:"Karthick Naren", actor:"Rahul Ramakrishna", year:2016, rating:8.4, desc:"A retired cop recalls a complex case.", platform:"Netflix"},
+      {name:"Thegidi", director:"P. Ramesh", actor:"Ashok Selvan", year:2014, rating:7.3, desc:"A detective investigates mysterious deaths.", platform:"Hotstar"},
+      {name:"Andhaghaaram", director:"Vignesh Shivan", actor:"Arjun Das", year:2020, rating:7.2, desc:"Three lives linked by supernatural events.", platform:"Netflix"},
+      {name:"Puriyatha Puthir", director:"Ranjit Jeyakodi", actor:"Sathya", year:2017, rating:6.9, desc:"A thriller about mistaken identity.", platform:"Zee5"}
+    ],
+    "English": [
+      {name:"Gone Girl", director:"David Fincher", actor:"Ben Affleck", year:2014, rating:8.1, desc:"A wife’s disappearance shocks a small town.", platform:"Netflix"},
+      {name:"Prisoners", director:"Denis Villeneuve", actor:"Hugh Jackman", year:2013, rating:8.1, desc:"A desperate father searches for his missing daughter.", platform:"Amazon Prime"},
+      {name:"The Girl with the Dragon Tattoo", director:"David Fincher", actor:"Daniel Craig", year:2011, rating:7.8, desc:"A journalist and hacker uncover dark secrets.", platform:"Netflix"},
+      {name:"The Sixth Sense", director:"M. Night Shyamalan", actor:"Bruce Willis", year:1999, rating:8.1, desc:"A boy who sees dead people.", platform:"Disney+"},
+      {name:"Se7en", director:"David Fincher", actor:"Brad Pitt", year:1995, rating:8.6, desc:"Two detectives hunt a serial killer.", platform:"Prime Video"}
+    ]
+  },
+  "Horror": {
+    "Tamil": [
+      {name:"Pizza", director:"Karthik Subbaraj", actor:"Vijay Sethupathi", year:2012, rating:7.2, desc:"A pizza delivery boy’s spooky night.", platform:"Netflix"},
+      {name:"Maya", director:"Ashwin Saravanan", actor:"Nayanthara", year:2015, rating:7.1, desc:"A horror story blending past and present.", platform:"Amazon Prime"},
+      {name:"Aval", director:"Milind Rau", actor:"Andrea Jeremiah", year:2017, rating:7.3, desc:"A tale of possession and love.", platform:"Netflix"},
+      {name:"Demonte Colony", director:"R Ajay Gnanamuthu", actor:"Arulnithi", year:2015, rating:7.1, desc:"Four friends encounter a haunted colony.", platform:"Hotstar"},
+      {name:"Yavarum Nalam", director:"Gautham Vasudev Menon", actor:"R. Madhavan", year:2009, rating:7.1, desc:"A man’s life turns mysterious after a phone call.", platform:"Netflix"}
+    ],
+    "English": [
+      {name:"The Conjuring", director:"James Wan", actor:"Vera Farmiga", year:2013, rating:7.5, desc:"Paranormal investigators help a family.", platform:"Netflix"},
+      {name:"Hereditary", director:"Ari Aster", actor:"Toni Collette", year:2018, rating:7.3, desc:"A family uncovers dark secrets.", platform:"Prime Video"},
+      {name:"The Exorcist", director:"William Friedkin", actor:"Linda Blair", year:1973, rating:8.0, desc:"A girl possessed by a demon.", platform:"HBO Max"},
+      {name:"Get Out", director:"Jordan Peele", actor:"Daniel Kaluuya", year:2017, rating:7.7, desc:"A man uncovers sinister secrets at his girlfriend’s family estate.", platform:"Netflix"},
+      {name:"It", director:"Andy Muschietti", actor:"Bill Skarsgård", year:2017, rating:7.3, desc:"Kids face an evil clown in their town.", platform:"HBO Max"}
+    ]
+  },
+  "Sci-Fi": {
+    "Tamil": [
+      {name:"Enthiran", director:"S. Shankar", actor:"Rajinikanth", year:2010, rating:7.1, desc:"A robot develops human emotions.", platform:"Netflix"},
+      {name:"2.0", director:"S. Shankar", actor:"Rajinikanth", year:2018, rating:6.1, desc:"A sequel to Enthiran with new threats.", platform:"Hotstar"},
+      {name:"Tik Tik Tik", director:"Shakti Soundar Rajan", actor:"Jayam Ravi", year:2018, rating:5.7, desc:"India's first space mission to save Earth.", platform:"Netflix"},
+      {name:"Indru Netru Naalai", director:"Rajesh M. Selva", actor:"Vishnu Vishal", year:2015, rating:7.7, desc:"Time travel creates chaos.", platform:"Amazon Prime"},
+      {name:"Maayavan", director:"C.V. Kumar", actor:"Sundeep Kishan", year:2017, rating:7.3, desc:"A cop hunts a mysterious killer.", platform:"Zee5"}
+    ],
+    "English": [
+      {name:"Interstellar", director:"Christopher Nolan", actor:"Matthew McConaughey", year:2014, rating:8.6, desc:"Space explorers seek a new home for humanity.", platform:"Netflix"},
+      {name:"Inception", director:"Christopher Nolan", actor:"Leonardo DiCaprio", year:2010, rating:8.8, desc:"Dreams within dreams fuel a heist.", platform:"Netflix"},
+      {name:"The Matrix", director:"The Wachowskis", actor:"Keanu Reeves", year:1999, rating:8.7, desc:"A hacker discovers reality is a simulation.", platform:"HBO Max"},
+      {name:"Arrival", director:"Denis Villeneuve", actor:"Amy Adams", year:2016, rating:7.9, desc:"Linguist tries to communicate with aliens.", platform:"Amazon Prime"},
+      {name:"Blade Runner 2049", director:"Denis Villeneuve", actor:"Ryan Gosling", year:2017, rating:8.0, desc:"A new blade runner uncovers secrets.", platform:"HBO Max"}
+    ]
+  },
+  "Comedy": {
+    "Tamil": [
+      {name:"Boss Engira Bhaskaran", director:"M. Rajesh", actor:"Arya", year:2010, rating:7.2, desc:"A lazy youth tries to win love.", platform:"Amazon Prime"},
+      {name:"Michael Madana Kama Rajan", director:"Singeetam Srinivasa Rao", actor:"Kamal Haasan", year:1990, rating:8.6, desc:"Four look-alikes create comic chaos.", platform:"Netflix"},
+      {name:"Soodhu Kavvum", director:"Nalan Kumarasamy", actor:"Vijay Sethupathi", year:2013, rating:8.0, desc:"A dark comedy on kidnappers.", platform:"Amazon Prime"},
+      {name:"Kalakalappu", director:"Sundar C", actor:"Vivek", year:2012, rating:6.9, desc:"Comedy of errors at a cafe.", platform:"Hotstar"},
+      {name:"Thamizh Padam", director:"C.S. Amudhan", actor:"Shiva", year:2010, rating:7.5, desc:"A spoof of Tamil cinema clichés.", platform:"Netflix"}
+    ],
+    "English": [
+      {name:"The Hangover", director:"Todd Phillips", actor:"Bradley Cooper", year:2009, rating:7.7, desc:"A bachelor party goes wildly wrong.", platform:"Amazon Prime"},
+      {name:"Superbad", director:"Greg Mottola", actor:"Jonah Hill", year:2007, rating:7.6, desc:"Teen friends try to party before college.", platform:"Netflix"},
+      {name:"Home Alone", director:"Chris Columbus", actor:"Macaulay Culkin", year:1990, rating:7.6, desc:"A kid defends his home from burglars.", platform:"Disney+"},
+      {name:"Dumb and Dumber", director:"Peter Farrelly", actor:"Jim Carrey", year:1994, rating:7.3, desc:"Two dumb friends on a road trip.", platform:"Amazon Prime"},
+      {name:"21 Jump Street", director:"Phil Lord, Christopher Miller", actor:"Jonah Hill", year:2012, rating:7.2, desc:"Two cops go undercover in high school.", platform:"Netflix"}
+    ]
+  },
+  "Drama": {
+    "Tamil": [
+      {name:"Pariyerum Perumal", director:"Mari Selvaraj", actor:"Kathir", year:2018, rating:8.5, desc:"A law student faces caste discrimination.", platform:"Netflix"},
+      {name:"Peranbu", director:"Ram", actor:"Mammootty", year:2018, rating:8.0, desc:"A father cares for his differently-abled daughter.", platform:"Amazon Prime"},
+      {name:"Pithamagan", director:"Bala", actor:"Vikram", year:2003, rating:8.1, desc:"Two orphans forge a bond.", platform:"Hotstar"},
+      {name:"Veyil", director:"Vasanthabalan", actor:"Bharath", year:2006, rating:7.6, desc:"Brothers' lives change after tragedy.", platform:"Netflix"},
+      {name:"Aruvi", director:"Alphonse Puthren", actor:"Aditi Balan", year:2016, rating:8.2, desc:"A woman challenges societal norms.", platform:"Amazon Prime"}
+    ],
+    "English": [
+      {name:"The Pursuit of Happyness", director:"Gabriele Muccino", actor:"Will Smith", year:2006, rating:8.0, desc:"A man fights to build a better life.", platform:"Netflix"},
+      {name:"The Shawshank Redemption", director:"Frank Darabont", actor:"Tim Robbins", year:1994, rating:9.3, desc:"Hope and friendship in prison.", platform:"Amazon Prime"},
+      {name:"Forrest Gump", director:"Robert Zemeckis", actor:"Tom Hanks", year:1994, rating:8.8, desc:"Life story of an extraordinary man.", platform:"Netflix"},
+      {name:"Fight Club", director:"David Fincher", actor:"Brad Pitt", year:1999, rating:8.8, desc:"An underground fight club changes lives.", platform:"HBO Max"},
+      {name:"A Beautiful Mind", director:"Ron Howard", actor:"Russell Crowe", year:2001, rating:8.2, desc:"A mathematician's struggle with schizophrenia.", platform:"Amazon Prime"}
+    ]
+  }
+};
+
+let movies = (allMovies[genre] && allMovies[genre][language]) || [];
+let shownIndexes = [];
+
+function displayMovie() {
+  if (shownIndexes.length === movies.length) {
+    document.getElementById("card").innerHTML = `<h2>😔 No more movies left in ${genre} - ${language}.</h2>`;
+    return;
+  }
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * movies.length);
+  } while (shownIndexes.includes(idx));
+  shownIndexes.push(idx);
+  const m = movies[idx];
+  document.getElementById("movie-name").innerText = `${shownIndexes.length}. ${m.name}`;
+  document.getElementById("credits").innerText = `🎥 Directed By ${m.director} | 🎭 Lead By ${m.actor}`;
+  document.getElementById("details").innerText = `${m.year} • IMDb ${m.rating}`;
+  document.getElementById("description").innerText = m.desc;
+  document.getElementById("platform").innerText = `Available on: ${m.platform}`;
+  document.getElementById("response").innerText = "";
+}
+
+function handleResponse(seen) {
+  if (seen) {
+    displayMovie();
+  } else {
+    document.getElementById("response").innerText = "🔥 This is the perfect movie for your night!";
+  }
+}
+
+window.onload = () => {
+  displayMovie();
+};
+</script>
+</body>
+</html>
